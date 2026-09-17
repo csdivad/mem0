@@ -43,7 +43,7 @@ class GeminiConfig(BaseLlmConfig):
             http_client_proxies: HTTP client proxy settings, defaults to None
             vertexai: Whether to use Vertex AI backend. If None, checks GOOGLE_GENAI_USE_VERTEXAI env var.
             project: GCP project ID for Vertex AI. If None, checks GOOGLE_CLOUD_PROJECT env var.
-            location: GCP location for Vertex AI. If None, checks GOOGLE_CLOUD_LOCATION env var.
+            location: GCP location for Vertex AI. If None, checks GOOGLE_CLOUD_LOCATION env var, defaulting to "global".
         """
         super().__init__(
             model=model,
@@ -61,4 +61,4 @@ class GeminiConfig(BaseLlmConfig):
             vertexai = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("true", "1", "yes")
         self.vertexai = vertexai
         self.project = project or os.getenv("GOOGLE_CLOUD_PROJECT")
-        self.location = location or os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        self.location = location or os.getenv("GOOGLE_CLOUD_LOCATION", "global")

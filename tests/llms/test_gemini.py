@@ -7,6 +7,10 @@ from mem0.configs.llms.base import BaseLlmConfig
 from mem0.configs.llms.gemini import GeminiConfig
 from mem0.llms.gemini import GeminiLLM
 
+HTTP_OPTIONS = types.HttpOptions(
+    retry_options=types.HttpRetryOptions(attempts=5, initial_delay=1.0, max_delay=60.0)
+)
+
 
 @pytest.fixture
 def mock_gemini_client():
@@ -241,7 +245,7 @@ def test_init_default_path_uses_api_key(monkeypatch):
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM(GeminiConfig(model="gemini-2.0-flash"))
-    mock_client_class.assert_called_once_with(api_key="test-key")
+    mock_client_class.assert_called_once_with(api_key="test-key", http_options=HTTP_OPTIONS)
 
 
 def test_init_backward_compat_with_base_config(monkeypatch):
@@ -250,7 +254,7 @@ def test_init_backward_compat_with_base_config(monkeypatch):
     monkeypatch.setenv("GOOGLE_API_KEY", "legacy-key")
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM(BaseLlmConfig(model="gemini-2.0-flash"))
-    mock_client_class.assert_called_once_with(api_key="legacy-key")
+    mock_client_class.assert_called_once_with(api_key="legacy-key", http_options=HTTP_OPTIONS)
 
 
 def test_init_vertexai_via_explicit_config(monkeypatch):
@@ -258,7 +262,9 @@ def test_init_vertexai_via_explicit_config(monkeypatch):
     monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM(GeminiConfig(vertexai=True, project="my-project", location="europe-west1"))
-    mock_client_class.assert_called_once_with(vertexai=True, project="my-project", location="europe-west1")
+    mock_client_class.assert_called_once_with(
+        vertexai=True, project="my-project", location="europe-west1", http_options=HTTP_OPTIONS
+    )
 
 
 def test_init_vertexai_via_dict_config(monkeypatch):
@@ -266,7 +272,9 @@ def test_init_vertexai_via_dict_config(monkeypatch):
     monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM({"vertexai": True, "project": "p", "location": "us-central1"})
-    mock_client_class.assert_called_once_with(vertexai=True, project="p", location="us-central1")
+    mock_client_class.assert_called_once_with(
+        vertexai=True, project="p", location="us-central1", http_options=HTTP_OPTIONS
+    )
 
 
 def test_init_vertexai_via_env_vars(monkeypatch):
@@ -276,16 +284,30 @@ def test_init_vertexai_via_env_vars(monkeypatch):
     monkeypatch.setenv("GOOGLE_CLOUD_LOCATION", "asia-south1")
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM(GeminiConfig())
-    mock_client_class.assert_called_once_with(vertexai=True, project="env-project", location="asia-south1")
+    mock_client_class.assert_called_once_with(
+        vertexai=True, project="env-project", location="asia-south1", http_options=HTTP_OPTIONS
+    )
 
 
-def test_init_vertexai_location_defaults_to_us_central1(monkeypatch):
-    """When Vertex is on but no location is supplied, it defaults to us-central1."""
+def test_init_vertexai_location_defaults_to_global(monkeypatch):
+    """When Vertex is on but no location is supplied, it defaults to the global endpoint."""
     monkeypatch.delenv("GOOGLE_CLOUD_LOCATION", raising=False)
     monkeypatch.setenv("GOOGLE_GENAI_USE_VERTEXAI", "true")
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM(GeminiConfig(project="p"))
-    mock_client_class.assert_called_once_with(vertexai=True, project="p", location="us-central1")
+    mock_client_class.assert_called_once_with(vertexai=True, project="p", location="global", http_options=HTTP_OPTIONS)
+
+
+def test_init_configures_retry_backoff(monkeypatch):
+    """The client is configured for truncated exponential backoff on 429/5xx responses."""
+    monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+    with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
+        GeminiLLM(GeminiConfig(model="gemini-2.0-flash"))
+    retry_options = mock_client_class.call_args.kwargs["http_options"].retry_options
+    assert retry_options.attempts == 5
+    assert retry_options.initial_delay == 1.0
+    assert retry_options.max_delay == 60.0
 
 
 def test_init_base_config_respects_vertexai_env(monkeypatch):
@@ -297,4 +319,6 @@ def test_init_base_config_respects_vertexai_env(monkeypatch):
     monkeypatch.setenv("GOOGLE_CLOUD_LOCATION", "us-west1")
     with patch("mem0.llms.gemini.genai.Client") as mock_client_class:
         GeminiLLM(BaseLlmConfig(model="gemini-2.0-flash", api_key="ignored-key"))
-    mock_client_class.assert_called_once_with(vertexai=True, project="env-project", location="us-west1")
+    mock_client_class.assert_called_once_with(
+        vertexai=True, project="env-project", location="us-west1", http_options=HTTP_OPTIONS
+    )

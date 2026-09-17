@@ -19,6 +19,16 @@ def config():
     return BaseEmbedderConfig(api_key="dummy_api_key", model="test_model", embedding_dims=786)
 
 
+def test_client_configured_with_retry_backoff(config):
+    """The client is configured for truncated exponential backoff on 429/5xx responses."""
+    with patch("mem0.embeddings.gemini.genai.Client") as mock_client_class:
+        GoogleGenAIEmbedding(config)
+    retry_options = mock_client_class.call_args.kwargs["http_options"].retry_options
+    assert retry_options.attempts == 5
+    assert retry_options.initial_delay == 1.0
+    assert retry_options.max_delay == 60.0
+
+
 def test_embed_query(mock_genai, config):
     mock_embedding_response = type(
         "Response", (), {"embeddings": [type("Embedding", (), {"values": [0.1, 0.2, 0.3, 0.4]})]}

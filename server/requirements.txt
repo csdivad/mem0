@@ -1,26 +1,25 @@
-fastapi==0.115.8
-uvicorn==0.34.0
-pydantic[email]==2.10.4
-mem0ai>=0.1.48
-python-dotenv==1.2.2
-psycopg[binary]>=3.2.8
-psycopg-pool>=3.2.6,<4.0.0
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic[email]==2.13.5
+python-dotenv==1.2.3
+psycopg[binary]>=3.3.5
+psycopg-pool>=3.3.1,<4.0.0
 
 # Bundled LLM/embedder providers. Extend by adding the provider's package
 # here, rebuilding the image, and updating BUNDLED_*_PROVIDERS in main.py.
-anthropic>=0.39,<1.0
-google-genai>=1.0.0
+anthropic>=1.6.0,<2.0
+google-genai>=2.24.0
 
 # Auth & database (Phase 1)
-sqlalchemy>=2.0,<3.0
-alembic>=1.13,<2.0
-passlib[bcrypt]>=1.7,<2.0
+sqlalchemy>=2.0.54,<3.0
+alembic>=1.20.0,<2.0
+passlib[bcrypt]>=1.7.4,<2.0
 bcrypt==4.0.1
-python-jose[cryptography]>=3.3,<4.0
-cryptography>46.0.4
+python-jose[cryptography]>=3.5.0,<4.0
+cryptography>=50.0.1
 
 # Anonymous telemetry — on by default, opt out with MEM0_TELEMETRY=false
-posthog>=3.0,<8.0
+posthog>=7.54.0,<8.0
 
 # Per-IP rate limiting on auth endpoints
-slowapi>=0.1.9,<1.0
+slowapi>=0.1.10,<1.0

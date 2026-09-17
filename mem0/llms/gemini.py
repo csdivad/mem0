@@ -11,6 +11,14 @@ from mem0.configs.llms.base import BaseLlmConfig
 from mem0.configs.llms.gemini import GeminiConfig
 from mem0.llms.base import LLMBase
 
+_RETRY_HTTP_OPTIONS = types.HttpOptions(
+    retry_options=types.HttpRetryOptions(
+        attempts=5,
+        initial_delay=1.0,
+        max_delay=60.0,
+    )
+)
+
 
 class GeminiLLM(LLMBase):
     def __init__(self, config: Optional[Union[BaseLlmConfig, GeminiConfig, Dict]] = None):
@@ -37,10 +45,15 @@ class GeminiLLM(LLMBase):
             self.config.model = "gemini-2.0-flash"
 
         if self.config.vertexai:
-            self.client = genai.Client(vertexai=True, project=self.config.project, location=self.config.location)
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.config.project,
+                location=self.config.location,
+                http_options=_RETRY_HTTP_OPTIONS,
+            )
         else:
             api_key = self.config.api_key or os.getenv("GOOGLE_API_KEY")
-            self.client = genai.Client(api_key=api_key)
+            self.client = genai.Client(api_key=api_key, http_options=_RETRY_HTTP_OPTIONS)
 
     def _parse_response(self, response, tools):
         """

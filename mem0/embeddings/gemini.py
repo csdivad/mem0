@@ -7,6 +7,14 @@ from google.genai import types
 from mem0.configs.embeddings.base import BaseEmbedderConfig
 from mem0.embeddings.base import EmbeddingBase
 
+_RETRY_HTTP_OPTIONS = types.HttpOptions(
+    retry_options=types.HttpRetryOptions(
+        attempts=5,
+        initial_delay=1.0,
+        max_delay=60.0,
+    )
+)
+
 
 class GoogleGenAIEmbedding(EmbeddingBase):
     def __init__(self, config: Optional[BaseEmbedderConfig] = None):
@@ -17,7 +25,7 @@ class GoogleGenAIEmbedding(EmbeddingBase):
 
         api_key = self.config.api_key or os.getenv("GOOGLE_API_KEY")
 
-        self.client = genai.Client(api_key=api_key)
+        self.client = genai.Client(api_key=api_key, http_options=_RETRY_HTTP_OPTIONS)
 
     def embed(self, text, memory_action: Optional[Literal["add", "search", "update"]] = None):
         """
